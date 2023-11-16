@@ -12,17 +12,32 @@ from Sketching import SRHT
 comm=MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
+diag_size = int(np.sqrt(size))
+k=30
+l=int(1.5*k)
+n=2048
 
-matrix = poly_factory(q=2.0,R=10)
-Nys = Nystrom(
+matrix = poly_factory(q=1.0,R=30)
+U,sigma,A = Nystrom(
     matrix=matrix,
     sketch=SRHT,
-    n=1024,
-    l=50,
-    k=10,
+    n=n,
+    l=l,
+    k=k,
     seed=55,
     comm=comm
 )
+
+U = comm.gather(U,root=0)
+A = comm.gather(A,root=0)
 if rank==0:
-    print(Nys.shape)
+    diag_A = np.zeros(n)
+    u = np.zeros((n,k))
+    for ind in range(len(A)):
+        if ind%diag_size==ind//diag_size:
+            i=ind%diag_size
+            diag_A[i*(n//diag_size):(i+1)*(n//diag_size)] = A[ind].diagonal()
+            u[i*(n//diag_size):(i+1)*(n//diag_size),:] = U[ind]
+    Nys = u @ np.diag(sigma) @ u.T
+    print(np.linalg.norm(np.diag(diag_A) - Nys, 'nuc')/np.linalg.norm(np.diag(diag_A) , 'nuc'))
 

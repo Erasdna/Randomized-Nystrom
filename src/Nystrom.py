@@ -25,48 +25,58 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     diag_comm = comm.Split(color = diag_color, key=row_color)
     
     # Get matrix
-    A = matrix(n//size_sqrt,row_color,col_color) # Or something similar?
+    
+    A = matrix(n//size_sqrt,row_color,col_color, 0.0) 
 
+    assert np.all(A == A.T)
     #Calculate and broadcast the sketching matrix
     if col_comm.Get_rank()==0:
         Omega = sketch(l,n//size_sqrt,seed,seed + rank)
     else:
         Omega = None
-    Omega = col_comm.bcast(Omega,root = 0)
     
+    Omega = col_comm.bcast(Omega,root = 0)
+
     #Calculate C, Allreduce along rows. We collect on diagonal procs to avoid
     #communicating omega
-    C= A @ Omega
+    if A is not None:
+        C= A @ Omega
+    else:
+        C = np.zeros_like(Omega)
     C = row_comm.reduce(C,MPI.SUM,root=row_color)
-
+    
     # Calculate Omega^T @ C
+    mu=2.2e-16
     if row_color==col_color:
+        fac = diag_comm.allreduce(np.linalg.norm(C,'fro')**2,MPI.SUM)
+        nu = mu*np.sqrt(fac)
+        C = C + nu*Omega # C = C + mu*Omega
         B = Omega.T @ C 
         B = diag_comm.reduce(B,MPI.SUM,root=0)
     else:
         B=None 
     
     if rank==0:
-        #DEBUG: Check that implementation works for B psd
-        B = B + 2*np.eye(B.shape[0],B.shape[1])
-        L = np.linalg.cholesky(B)
+        # print(B.shape)
+        eigs =scipy.linalg.eigvals((B+B.T)/2) 
+        print(eigs[eigs<=0])
+        # L = scipy.linalg.cholesky((B+B.T)/2) #enforce symmetry
+        D=(B+B.T)/2
+        L,info=scipy.linalg.lapack.dpotrf(D,lower=True,overwrite_a=True,clean=True)
+        print(L.shape)
+        print(info)
     else:
         L = None
     
     if row_color==col_color:
         L = diag_comm.bcast(L,root=0)
-        Z = scipy.linalg.solve_triangular(L,C.T).T
+        Z = np.linalg.solve(L,C.T).T
         Q,R = TSQR(Z,diag_comm) # TSQR acts with assumption that Z is already scattered
-        U,sigma,VT = np.linalg.svd(R) #R is small, we do the svd on all procs instead of communicating
+        U,sigma,_ = np.linalg.svd(R) #R is small, we do the svd on all procs instead of communicating
         Uhat = Q @ U[:,:k] #Truncate U
-        sigmaU = np.diag(sigma[:k]**2) @ Uhat.T
-        Us = diag_comm.allgather(sigmaU)
-        sigmaU_full = np.reshape(Us, (sigmaU.shape[0],len(Us)*sigmaU.shape[1]))
-        Nyst = Uhat @ sigmaU_full
-        Nyst_collect = diag_comm.gather(Nyst,root=0)
-        if rank==0:
-            Nyst = np.reshape(Nyst_collect, (len(Nyst_collect)*Nyst.shape[0],Nyst.shape[1]))
+        sig = sigma[:k]**2 - nu
     else:
-        Nyst = None
+        Uhat = None
+        sig = None 
     
-    return Nyst
+    return Uhat,sig,A
