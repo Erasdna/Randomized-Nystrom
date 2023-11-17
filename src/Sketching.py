@@ -20,3 +20,7 @@ def SRHT(l,dim,R_seed,D_seed):
 
     # return sqrt(dim/l)* Dl @ HR @ Dr on all processes
     return np.sqrt(dim/l)*Dl[:,None] *(H * Dr[None,:])
+
+def Gaussian(l,dim,R_seed,D_seed):
+    rng = np.random.default_rng(seed=D_seed)
+    return rng.normal(size=(dim,l))

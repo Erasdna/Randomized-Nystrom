@@ -7,20 +7,20 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory
-from Sketching import SRHT
+from Sketching import SRHT,Gaussian
 
 comm=MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 diag_size = int(np.sqrt(size))
-k=30
-l=int(1.5*k)
+k=100
+l=int(5*k)
 n=2048
 
-matrix = poly_factory(q=1.0,R=30)
+matrix = poly_factory(q=1.0,R=10)
 U,sigma,A = Nystrom(
     matrix=matrix,
-    sketch=SRHT,
+    sketch=Gaussian,
     n=n,
     l=l,
     k=k,
