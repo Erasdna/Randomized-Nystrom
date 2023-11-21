@@ -9,7 +9,8 @@ from scipy.linalg import hadamard
 def SRHT(l,dim,R_seed,D_seed):
     #Generate R (dim x l) (should be the same everywhere)
     R_rng = np.random.default_rng(seed=R_seed)
-    cols = R_rng.choice(dim,l)
+    #Sample columns without replacement
+    cols = R_rng.choice(dim,l,replace=False)
     #Generate H (dim x dim) and extract columns (=H@R)
     H = (1/np.sqrt(dim))*hadamard(dim)[:,cols]
 

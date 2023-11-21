@@ -13,14 +13,14 @@ comm=MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 diag_size = int(np.sqrt(size))
-k=100
+k=30
 l=int(5*k)
 n=2048
 
-matrix = poly_factory(q=1.0,R=10)
+matrix = poly_factory(q=2.0,R=10)
 U,sigma,A = Nystrom(
     matrix=matrix,
-    sketch=Gaussian,
+    sketch=SRHT,
     n=n,
     l=l,
     k=k,
