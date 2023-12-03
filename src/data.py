@@ -5,12 +5,23 @@ import numpy as np
 import scipy.sparse as sp
 
 def poly_factory(q,R):
-    return lambda n,row,col,mu: polydecay(n,q,R,row,col,mu)
+    return lambda n,row,col: polydecay(n,q,R,row,col)
 
-def polydecay(n,q,R,row,col,mu):
+def polydecay(n,q,R,row,col):
     if row!= col:
-        return np.zeros((n,n))
+        return sp.csr_matrix((n,n),dtype=float)
     else:
         ind = np.arange(n*row,n*(row+1),1)
-        d = np.where(ind<R, 1,(ind - R +1)**(q))
-        return np.diag((1/d) + mu) 
+        d = np.where(ind<R, 1.0,(ind - R + 2.0)**(q))
+        return sp.diags(1/d) 
+
+def exp_factory(q,R):
+    return lambda n,row,col: expdecay(n,q,R,row,col)
+
+def expdecay(n,q,R,row,col):
+    if row!= col:
+        return sp.csr_matrix((n,n),dtype=float)
+    else:
+        ind = np.arange(n*row,n*(row+1),1)
+        d = np.where(ind<R, 1.0,10.0**(-(ind - R + 1.0)*q))
+        return sp.diags(d) 

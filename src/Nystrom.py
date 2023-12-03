@@ -8,6 +8,7 @@ from TSQR import TSQR
 def Nystrom(matrix,sketch,n,l,k,seed,comm):
     rank = comm.Get_rank()
     size = comm.Get_size()
+    
     #First check that we can take sqrt of size:
     size_sqrt = int(np.sqrt(size))
     assert size_sqrt**2 == size
@@ -26,9 +27,8 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     
     # Get matrix
     
-    A = matrix(n//size_sqrt,row_color,col_color, 0.0) 
+    A = matrix(n//size_sqrt,row_color,col_color) 
 
-    assert np.all(A == A.T)
     #Calculate and broadcast the sketching matrix
     if col_comm.Get_rank()==0:
         Omega = sketch(l,n//size_sqrt,seed,seed + rank)
@@ -38,7 +38,6 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     Omega = col_comm.bcast(Omega,root = 0)
 
     #Calculate C, Allreduce along rows. We collect on diagonal procs to avoid
-    #communicating omega
     if A is not None:
         C= A @ Omega
     else:
@@ -50,27 +49,24 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     if row_color==col_color:
         fac = diag_comm.allreduce(np.linalg.norm(C,'fro')**2,MPI.SUM)
         nu = mu*np.sqrt(fac)
-        C = C + nu*Omega # C = C + mu*Omega
+        #We add a small perturbation to avoid C not being psd
+        C = C + nu*Omega 
         B = Omega.T @ C 
         B = diag_comm.reduce(B,MPI.SUM,root=0)
     else:
         B=None 
     
     if rank==0:
-        # print(B.shape)
-        eigs =scipy.linalg.eigvals((B+B.T)/2) 
-        print(eigs[eigs<=0])
-        # L = scipy.linalg.cholesky((B+B.T)/2) #enforce symmetry
+        #Impose symmetry
         D=(B+B.T)/2
-        L,info=scipy.linalg.lapack.dpotrf(D,lower=True,overwrite_a=True,clean=True)
-        print(L.shape)
-        print(info)
+        #LAPACK cholesky
+        L,_=scipy.linalg.lapack.dpotrf(D,lower=True,overwrite_a=True,clean=True)
     else:
         L = None
     
     if row_color==col_color:
         L = diag_comm.bcast(L,root=0)
-        Z = np.linalg.solve(L,C.T).T
+        Z = scipy.linalg.solve_triangular(L,C.T,lower=True).T
         Q,R = TSQR(Z,diag_comm) # TSQR acts with assumption that Z is already scattered
         U,sigma,_ = np.linalg.svd(R) #R is small, we do the svd on all procs instead of communicating
         Uhat = Q @ U[:,:k] #Truncate U
