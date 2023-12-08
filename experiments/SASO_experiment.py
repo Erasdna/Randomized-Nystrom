@@ -40,7 +40,7 @@ if __name__=="__main__":
     diag_size = int(np.sqrt(size))
     its=20
 
-    sketch = [Gaussian,SRHT,SASO]
+    sketch = [8,12,16,20]
     err = np.zeros((len(sketch),its))
     err2 = np.zeros((len(sketch),its))
     timing = np.zeros((len(sketch),its))
@@ -52,10 +52,11 @@ if __name__=="__main__":
             l = k*(j+2)
             tot[nn,j]=l
             matrix = factory(q=q,R=10)
+            mat = lambda l,dim,seed1,seed2: SASO(l,dim,seed1,seed2,s)
             start = time.perf_counter()
             U,sigma,A = Nystrom(
                 matrix=matrix,
-                sketch=s,
+                sketch=mat,
                 n=n,
                 l=l,
                 k=k,
@@ -75,11 +76,10 @@ if __name__=="__main__":
                 print(err2[nn,j])
             comm.Barrier()
 
-    filename = os.getcwd() + "/Figures/" + sys.argv[1] + "/" + sys.argv[2] + "/"
+    filename = os.getcwd() + "/Figures/" + sys.argv[1] + "/" + sys.argv[2] + "/SASO/"
     fig,ax = plt.subplots()
-    ax.plot(tot[0,:],err[0,:],label="Gaussian",marker="^")
-    ax.plot(tot[1,:],err[1,:],label="SRHT", marker="<")
-    ax.plot(tot[1,:],err[2,:],label="SASO(8)", marker=">")
+    for i,el in enumerate(err):
+        ax.plot(tot[i,:],el,label="SASO(d=" + str(sketch[i]) + ")")
     ax.set_xlabel("Oversampling parameter (rank=10)")
     ax.set_ylabel("$||A - [A_{Nyst}]_k||_*/||A||_*$")
     ax.legend()
@@ -88,9 +88,8 @@ if __name__=="__main__":
     fig.savefig(filename + "A_error_" + sys.argv[1] + "n=" + sys.argv[2] +"_q=" + sys.argv[3] + ".png",bbox_inches='tight')
 
     fig2,ax2 = plt.subplots()
-    ax2.semilogy(tot[0,:],err2[0,:],label="Gaussian",marker="^")
-    ax2.semilogy(tot[1,:],err2[1,:],label="SRHT", marker="<")
-    ax2.semilogy(tot[1,:],err2[2,:],label="SASO(8)", marker=">")
+    for i,el in enumerate(err2):
+        ax2.plot(tot[i,:],el,label="SASO(" + str(sketch[i]) + ")")
     ax2.set_xlabel("Oversampling parameter (rank=10)")
     ax2.set_ylabel("$||A - [A_{Nyst}]_k||_*/||A - [A_{SVD}]_k||_* - 1$")
     ax2.legend()

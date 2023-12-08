@@ -47,6 +47,9 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     # Calculate Omega^T @ C
     mu=2.2e-16
     if row_color==col_color:
+        if scipy.sparse.issparse(C):
+            C = C.todense()
+        
         fac = diag_comm.allreduce(np.linalg.norm(C,'fro')**2,MPI.SUM)
         nu = mu*np.sqrt(fac)
         #We add a small perturbation to avoid C not being psd
@@ -60,6 +63,8 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
         #Impose symmetry
         D=(B+B.T)/2
         #LAPACK cholesky
+        if scipy.sparse.issparse(D):
+            D = D.todense()
         L,_=scipy.linalg.lapack.dpotrf(D,lower=True,overwrite_a=True,clean=True)
     else:
         L = None

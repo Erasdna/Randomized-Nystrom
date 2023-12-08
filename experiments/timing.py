@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory
-from Sketching import SRHT,Gaussian
+from Sketching import SRHT,Gaussian,SASO
 
 if __name__=="__main__":
 
@@ -27,12 +27,14 @@ if __name__=="__main__":
         n=diag_size*N
     elif sys.argv[2]=="Strong":
         n=N
+    
 
     if sys.argv[1] == "Gaussian":
         sketch = Gaussian
     elif sys.argv[1]=="SRHT":
         sketch = SRHT 
-        assert n%2==0
+    elif sys.argv[1]=="SASO":
+        sketch=SASO
     filename = os.getcwd() + "/Figures/Timing/" + sys.argv[1] + "/" + sys.argv[2] + "_n=" + sys.argv[3] + "_"
 
     matrix = poly_factory(q=1.0,R=10)

@@ -2,6 +2,7 @@ from mpi4py import MPI
 import sys
 import os
 import numpy as np
+import time
 
 sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
@@ -14,10 +15,12 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 diag_size = int(np.sqrt(size))
 k=10
-l=int(20*k)
-n=(1024)
+l=int(5*k)
+n=60000
 
 matrix = poly_factory(q=1.0,R=10)
+
+t0 = time.perf_counter()
 U,sigma,A = Nystrom(
     matrix=matrix,
     sketch=SASO,
@@ -31,6 +34,8 @@ U,sigma,A = Nystrom(
 U = comm.gather(U,root=0)
 A = comm.gather(A,root=0)
 if rank==0:
+    print(time.perf_counter()-t0)
+
     diag_A = np.zeros(n)
     u = np.zeros((n,k))
     for ind in range(len(A)):

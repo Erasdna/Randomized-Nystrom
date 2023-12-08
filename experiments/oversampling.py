@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory, exp_factory
-from Sketching import SRHT,Gaussian
+from Sketching import SRHT,Gaussian, SASO
 from cycler import cycler
 
 if __name__=="__main__":
@@ -40,7 +40,7 @@ if __name__=="__main__":
     diag_size = int(np.sqrt(size))
     its=20
 
-    sketch = [Gaussian,SRHT]
+    sketch = [Gaussian,SRHT, SASO]
     err = np.zeros((len(sketch),its))
     err2 = np.zeros((len(sketch),its))
     timing = np.zeros((len(sketch),its))
