@@ -28,16 +28,11 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     # Get matrix
     
     A = matrix(n//size_sqrt,row_color,col_color) 
-
-    #Calculate and broadcast the sketching matrix
-    if col_comm.Get_rank()==0:
-        Omega = sketch(l,n//size_sqrt,seed,seed + rank)
-    else:
-        Omega = None
     
-    Omega = col_comm.bcast(Omega,root = 0)
+    # We calculate Omega on all processors. Processors in the same column make the same
+    #Omega. We ensure this through the seed
+    Omega = sketch(l,n//size_sqrt,seed,seed+col_color)
 
-    #Calculate C, Allreduce along rows. We collect on diagonal procs to avoid
     if A is not None:
         C= A @ Omega
     else:
@@ -47,35 +42,23 @@ def Nystrom(matrix,sketch,n,l,k,seed,comm):
     # Calculate Omega^T @ C
     mu=2.2e-16
     if row_color==col_color:
-        if scipy.sparse.issparse(C):
-            C = C.todense()
-        
-        fac = diag_comm.allreduce(np.linalg.norm(C,'fro')**2,MPI.SUM)
-        nu = mu*np.sqrt(fac)
+        #fac = diag_comm.allreduce(np.linalg.norm(C,'fro')**2,MPI.SUM)
+        #nu = mu*np.sqrt(fac)
         #We add a small perturbation to avoid C not being psd
-        C = C + nu*Omega 
+        #C = C + nu*Omega 
+        
         B = Omega.T @ C 
-        B = diag_comm.reduce(B,MPI.SUM,root=0)
-    else:
-        B=None 
-    
-    if rank==0:
+        B = diag_comm.allreduce(B,MPI.SUM)
         #Impose symmetry
         D=(B+B.T)/2
+
         #LAPACK cholesky
-        if scipy.sparse.issparse(D):
-            D = D.todense()
         L,_=scipy.linalg.lapack.dpotrf(D,lower=True,overwrite_a=True,clean=True)
-    else:
-        L = None
-    
-    if row_color==col_color:
-        L = diag_comm.bcast(L,root=0)
         Z = scipy.linalg.solve_triangular(L,C.T,lower=True).T
         Q,R = TSQR(Z,diag_comm) # TSQR acts with assumption that Z is already scattered
         U,sigma,_ = np.linalg.svd(R) #R is small, we do the svd on all procs instead of communicating
         Uhat = Q @ U[:,:k] #Truncate U
-        sig = sigma[:k]**2 - nu
+        sig = sigma[:k]**2 #- nu*0
     else:
         Uhat = None
         sig = None 

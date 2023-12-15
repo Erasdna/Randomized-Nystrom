@@ -72,6 +72,7 @@ if __name__=="__main__":
     fig3,ax3 = plt.subplots()
     ax3.plot(tot[0,:],timing[0,:],label="Gaussian",marker="^")
     ax3.plot(tot[1,:],timing[1,:],label="SRHT", marker="<")
+    ax3.plot(tot[2,:],timing[2,:],label="SASO(8)", marker=">")
     ax3.set_xlabel("Oversampling parameter (rank=10)")
     ax3.set_ylabel("Runtime [s]")
     ax3.legend()

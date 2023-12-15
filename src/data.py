@@ -9,19 +9,19 @@ def poly_factory(q,R):
 
 def polydecay(n,q,R,row,col):
     if row!= col:
-        return sp.csr_matrix((n,n),dtype=float)
+        return np.zeros((n,n)) #sp.csr_matrix((n,n),dtype=float)
     else:
         ind = np.arange(n*row,n*(row+1),1)
         d = np.where(ind<R, 1.0,(ind - R + 2.0)**(q))
-        return sp.diags(1/d) 
+        return np.diag(1/d) #sp.diags(1/d) 
 
 def exp_factory(q,R):
     return lambda n,row,col: expdecay(n,q,R,row,col)
 
 def expdecay(n,q,R,row,col):
     if row!= col:
-        return sp.csr_matrix((n,n),dtype=float)
+        return np.zeros((n,n))#sp.csr_matrix((n,n),dtype=float)
     else:
         ind = np.arange(n*row,n*(row+1),1)
         d = np.where(ind<R, 1.0,10.0**(-(ind - R + 1.0)*q))
-        return sp.diags(d) 
+        return np.diag(d) #sp.diags(d) 

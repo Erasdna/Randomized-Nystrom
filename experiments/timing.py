@@ -49,7 +49,9 @@ if __name__=="__main__":
                 seed=55,
                 comm=comm
             )
-    comm.Barrier()
+    #comm.Barrier()
     if rank==0:
+        t = time.perf_counter()-start
+        print("Procs: ", size, " time: ", t)
         with open(filename+"data.txt", "a") as myfile:
-            myfile.write(str(size) + " " + str(time.perf_counter()-start) + "\n")
+            myfile.write(str(size) + " " + str(t) + "\n")

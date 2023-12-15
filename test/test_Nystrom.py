@@ -16,14 +16,14 @@ size = comm.Get_size()
 diag_size = int(np.sqrt(size))
 k=10
 l=int(5*k)
-n=60000
+n=100000
 
 matrix = poly_factory(q=1.0,R=10)
 
 t0 = time.perf_counter()
 U,sigma,A = Nystrom(
     matrix=matrix,
-    sketch=SASO,
+    sketch=Gaussian,
     n=n,
     l=l,
     k=k,
