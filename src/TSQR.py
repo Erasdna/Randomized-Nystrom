@@ -12,11 +12,9 @@ def TSQR(W,comm):
     Returns:
         Matrix,Matrix: Q,R such that W=QR
     """
+    #We assume that W has alreadt been scattered on processors
     rank = comm.Get_rank()
     size = comm.Get_size()
-
-    #We assume that W has already been scattered on the communicator
-    W_size = W.shape
     
     n = np.ceil(np.log2(size)).astype(int)
     

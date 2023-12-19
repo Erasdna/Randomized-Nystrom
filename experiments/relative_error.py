@@ -9,7 +9,10 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory, exp_factory
-from Sketching import SRHT,Gaussian,SASO
+from Sketching.LASO import LASO
+from Sketching.Gaussian import Gaussian
+from Sketching.SASO import SASO
+from Sketching.SSO import SSO
 from cycler import cycler
 
 if __name__=="__main__":
@@ -40,7 +43,7 @@ if __name__=="__main__":
     diag_size = int(np.sqrt(size))
     its=20
 
-    sketch = [Gaussian,SRHT,SASO]
+    sketch = [Gaussian,SASO,LASO,SSO]
     err = np.zeros((len(sketch),its))
     err2 = np.zeros((len(sketch),its))
     timing = np.zeros((len(sketch),its))
@@ -49,6 +52,7 @@ if __name__=="__main__":
 
     for j in range(its):
         for nn,s in enumerate(sketch):
+            print(s)
             l = k*(j+2)
             tot[nn,j]=l
             matrix = factory(q=q,R=10)
@@ -65,8 +69,6 @@ if __name__=="__main__":
             print("Time: ", time.perf_counter()-start)
             if rank==0:
                 timing[nn,j] = time.perf_counter()-start
-                A=A.todense()
-                diag = np.diag(A)
                 Nys = U @ np.diag(sigma) @ U.T
                 uu,ss,vv = np.linalg.svd(A)
                 err [nn,j] = np.linalg.norm(A - Nys, 'nuc')/np.linalg.norm(A , 'nuc')
@@ -78,8 +80,9 @@ if __name__=="__main__":
     filename = os.getcwd() + "/Figures/" + sys.argv[1] + "/" + sys.argv[2] + "/"
     fig,ax = plt.subplots()
     ax.plot(tot[0,:],err[0,:],label="Gaussian",marker="^")
-    ax.plot(tot[1,:],err[1,:],label="SRHT", marker="<")
-    ax.plot(tot[1,:],err[2,:],label="SASO(8)", marker=">")
+    ax.plot(tot[1,:],err[1,:],label="SASO(8)", marker="<")
+    ax.plot(tot[1,:],err[2,:],label="LASO(60)", marker=">")
+    ax.plot(tot[1,:],err[3,:],label="SSO(16)", marker="o")
     ax.set_xlabel("Oversampling parameter (rank=10)")
     ax.set_ylabel("$||A - [A_{Nyst}]_k||_*/||A||_*$")
     ax.legend()
@@ -89,8 +92,9 @@ if __name__=="__main__":
 
     fig2,ax2 = plt.subplots()
     ax2.semilogy(tot[0,:],err2[0,:],label="Gaussian",marker="^")
-    ax2.semilogy(tot[1,:],err2[1,:],label="SRHT", marker="<")
-    ax2.semilogy(tot[1,:],err2[2,:],label="SASO(8)", marker=">")
+    ax2.semilogy(tot[1,:],err2[1,:],label="SASO(8)", marker="<")
+    ax2.semilogy(tot[1,:],err2[2,:],label="LASO(60)", marker=">")
+    ax2.semilogy(tot[1,:],err2[3,:],label="SSO(16)", marker=">")
     ax2.set_xlabel("Oversampling parameter (rank=10)")
     ax2.set_ylabel("$||A - [A_{Nyst}]_k||_*/||A - [A_{SVD}]_k||_* - 1$")
     ax2.legend()

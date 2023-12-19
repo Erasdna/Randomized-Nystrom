@@ -1,7 +1,7 @@
 import numpy as np
 from .Sketch import Sketch
 
-class SASO(Sketch):
+class Gaussian(Sketch):
     def __init__(self, l, dim, base_seed) -> None:
         super().__init__(l, dim, base_seed)
     

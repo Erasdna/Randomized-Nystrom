@@ -9,7 +9,9 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory, exp_factory
-from Sketching import SRHT,Gaussian,SASO
+from Sketching.SASO import SASO
+from Sketching.LASO import LASO
+from Sketching.SSO import SSO
 from cycler import cycler
 
 if __name__=="__main__":
@@ -36,11 +38,22 @@ if __name__=="__main__":
 
     k=10
     n=int(sys.argv[2])
+
+    if sys.argv[4]=="SASO":
+        so = SASO
+        sketch = [8,12,16,20]
+    elif sys.argv[4]=="LASO":
+        so = LASO
+        sketch = [12,30,60,120,300]
+    elif sys.argv[4]=="SSO":
+        so = LASO
+        sketch = [8,12,16,20]
+
     
     diag_size = int(np.sqrt(size))
     its=20
 
-    sketch = [8,12,16,20]
+    
     err = np.zeros((len(sketch),its))
     err2 = np.zeros((len(sketch),its))
     timing = np.zeros((len(sketch),its))
@@ -49,10 +62,11 @@ if __name__=="__main__":
 
     for j in range(its):
         for nn,s in enumerate(sketch):
-            l = k*(j+2)
+            l = k*(j+3)
+            print(l)
             tot[nn,j]=l
             matrix = factory(q=q,R=10)
-            mat = lambda l,dim,seed1,seed2: SASO(l,dim,seed1,seed2,s)
+            mat = lambda l,dim,seed: so(l,dim,seed,s)
             start = time.perf_counter()
             U,sigma,A = Nystrom(
                 matrix=matrix,
@@ -66,8 +80,6 @@ if __name__=="__main__":
             print("Time: ", time.perf_counter()-start)
             if rank==0:
                 timing[nn,j] = time.perf_counter()-start
-                A=A.todense()
-                diag = np.diag(A)
                 Nys = U @ np.diag(sigma) @ U.T
                 uu,ss,vv = np.linalg.svd(A)
                 err [nn,j] = np.linalg.norm(A - Nys, 'nuc')/np.linalg.norm(A , 'nuc')
@@ -76,23 +88,23 @@ if __name__=="__main__":
                 print(err2[nn,j])
             comm.Barrier()
 
-    filename = os.getcwd() + "/Figures/" + sys.argv[1] + "/" + sys.argv[2] + "/SASO/"
+    filename = os.getcwd() + "/Figures/SO/" + sys.argv[4] 
     fig,ax = plt.subplots()
     for i,el in enumerate(err):
-        ax.plot(tot[i,:],el,label="SASO(d=" + str(sketch[i]) + ")")
+        ax.plot(tot[i,:],el,label=sys.argv[4] + "(" + str(sketch[i]) + ")")
     ax.set_xlabel("Oversampling parameter (rank=10)")
     ax.set_ylabel("$||A - [A_{Nyst}]_k||_*/||A||_*$")
     ax.legend()
     ax.grid()
-    fig.savefig(filename + "A_error_" + sys.argv[1] + "n=" + sys.argv[2] + "_q=" + sys.argv[3] + ".eps",bbox_inches='tight')
-    fig.savefig(filename + "A_error_" + sys.argv[1] + "n=" + sys.argv[2] +"_q=" + sys.argv[3] + ".png",bbox_inches='tight')
+    fig.savefig(filename + "_A_error_" + sys.argv[1] + "n=" + sys.argv[2] + "_q=" + sys.argv[3] + ".eps",bbox_inches='tight')
+    fig.savefig(filename + "_A_error_" + sys.argv[1] + "n=" + sys.argv[2] +"_q=" + sys.argv[3] + ".png",bbox_inches='tight')
 
     fig2,ax2 = plt.subplots()
     for i,el in enumerate(err2):
-        ax2.plot(tot[i,:],el,label="SASO(" + str(sketch[i]) + ")")
+        ax2.plot(tot[i,:],el,label= sys.argv[4] + "(" + str(sketch[i]) + ")")
     ax2.set_xlabel("Oversampling parameter (rank=10)")
     ax2.set_ylabel("$||A - [A_{Nyst}]_k||_*/||A - [A_{SVD}]_k||_* - 1$")
     ax2.legend()
     ax2.grid()
-    fig2.savefig(filename + "SVD_error_" + sys.argv[1] + "n=" + sys.argv[2] + "_q=" + sys.argv[3] + ".eps",bbox_inches='tight')
-    fig2.savefig(filename + "SVD_error_" + sys.argv[1] + "n=" + sys.argv[2] + "_q=" + sys.argv[3] + ".png",bbox_inches='tight')
+    fig2.savefig(filename + "_SVD_error_" + sys.argv[1] + "n=" + sys.argv[2] + "_q=" + sys.argv[3] + ".eps",bbox_inches='tight')
+    fig2.savefig(filename + "_SVD_error_" + sys.argv[1] + "n=" + sys.argv[2] + "_q=" + sys.argv[3] + ".png",bbox_inches='tight')

@@ -9,7 +9,10 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory, exp_factory
-from Sketching import SRHT,Gaussian,SASO
+from Sketching.LASO import LASO
+from Sketching.SSO import SSO
+from Sketching.Gaussian import Gaussian
+from Sketching.SASO import SASO
 from cycler import cycler
 
 if __name__=="__main__":
@@ -40,7 +43,7 @@ if __name__=="__main__":
     diag_size = int(np.sqrt(size))
     mult = [2,5,10,15]
 
-    sketch = [Gaussian,SRHT,SASO]
+    sketch = [Gaussian,SASO,LASO,SSO]
 
     d1 = len(mult)
     d2 = k
@@ -53,23 +56,21 @@ if __name__=="__main__":
     for j in range(k):
         for jj,m in enumerate(mult):
             for nn,s in enumerate(sketch):
-                tot[nn,jj,j]=j+6
+                tot[nn,jj,j]=j+9
                 matrix = factory(q=q,R=10)
                 start = time.perf_counter()
                 U,sigma,A = Nystrom(
                     matrix=matrix,
                     sketch=s,
                     n=n,
-                    l=m*(j+6),
-                    k=j+6,
+                    l=m*(j+9),
+                    k=j+9,
                     seed=55,
                     comm=comm
                 )
                 print("Time: ", time.perf_counter()-start)
                 if rank==0:
                     timing[nn,jj,j] = time.perf_counter()-start
-                    A=A.todense()
-                    diag = np.diag(A)
                     Nys = U @ np.diag(sigma) @ U.T
                     uu,ss,vv = np.linalg.svd(A)
                     err[nn,jj,j] = np.linalg.norm(A - Nys, 'nuc')/np.linalg.norm(A , 'nuc')
@@ -78,7 +79,7 @@ if __name__=="__main__":
                     #print(err2[nn,jj,j])
                 comm.Barrier()
 
-    names = ["Gaussian", "SRHT", "SASO(8)"]
+    names = ["Gaussian", "SASO(8)", "LASO(60)","SSO(16)"]
     markers = ["^","<", ">", "o"]
     filename = os.getcwd() + "/Figures/" + sys.argv[1] + "/" + sys.argv[2] + "/rank/"
     

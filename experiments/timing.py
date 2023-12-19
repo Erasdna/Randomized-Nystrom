@@ -9,7 +9,10 @@ sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
 from Nystrom import Nystrom
 from data import poly_factory
-from Sketching import SRHT,Gaussian,SASO
+from Sketching.LASO import LASO
+from Sketching.SSO import SSO
+from Sketching.SASO import SASO
+from Sketching.Gaussian import Gaussian
 
 if __name__=="__main__":
 
@@ -22,6 +25,11 @@ if __name__=="__main__":
     diag_size = int(np.sqrt(size))
     l=5*k
 
+    reps = 5
+    if rank==0:
+        timing = np.zeros(reps)
+
+
     N = int(sys.argv[3])
     if sys.argv[2]=="Weak":
         n=diag_size*N
@@ -31,27 +39,32 @@ if __name__=="__main__":
 
     if sys.argv[1] == "Gaussian":
         sketch = Gaussian
-    elif sys.argv[1]=="SRHT":
-        sketch = SRHT 
     elif sys.argv[1]=="SASO":
         sketch=SASO
+    elif sys.argv[1]=="SSO":
+        sketch=SSO
+    elif sys.argv[1]=="LASO":
+        sketch=lambda l,dim,seed: LASO(l,dim,seed,d=int(n*0.06//diag_size))
     filename = os.getcwd() + "/Figures/Timing/" + sys.argv[1] + "/" + sys.argv[2] + "_n=" + sys.argv[3] + "_"
 
     matrix = poly_factory(q=1.0,R=10)
 
-    start = time.perf_counter()
-    U,sigma,A = Nystrom(
-                matrix=matrix,
-                sketch=sketch,
-                n=n,
-                l=l,
-                k=k,
-                seed=55,
-                comm=comm
-            )
-    #comm.Barrier()
+    for i in range(reps):
+        comm.Barrier()
+        start = time.perf_counter()
+        U,sigma,A = Nystrom(
+                    matrix=matrix,
+                    sketch=sketch,
+                    n=n,
+                    l=l,
+                    k=k,
+                    seed=55,
+                    comm=comm
+                )
+        if rank==0:
+            timing[i] = time.perf_counter()-start
     if rank==0:
-        t = time.perf_counter()-start
-        print("Procs: ", size, " time: ", t)
+        print("Procs: ", size, " time: ", np.mean(timing), " +/- ", np.std(timing))
         with open(filename+"data.txt", "a") as myfile:
-            myfile.write(str(size) + " " + str(t) + "\n")
+            myfile.write(str(size) + " " + str(np.mean(timing)) + " " + str(np.std(timing)) + "\n")
+            

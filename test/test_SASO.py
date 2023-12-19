@@ -6,16 +6,9 @@ import time
 
 sys.path.append(os.path.abspath(os.getcwd() + "/src/"))
 
-from Sketching import SASO,SRHT,Gaussian
+from Sketching.LASO import LASO
 
-start_SASO = time.perf_counter()
-out = SASO(20,4096,55,0,fac=0.2)
-print(time.perf_counter() - start_SASO)
-
-start_SRHT = time.perf_counter()
-SRHT(20,4096,55,0)
-print(time.perf_counter() - start_SRHT)
-
-start_Gaussian = time.perf_counter()
-Gaussian(20,4096,55,0)
-print(time.perf_counter() - start_Gaussian)
+mat = np.random.randn(1000,1000)
+sketch = LASO(50,1000,3,d=8)
+sketch.initialize_matrix(0)
+sketch.apply_right(mat)
